@@ -18,7 +18,7 @@ public class ClosestPair {
             System.out.println(points[i].x + " " + points[i].y);
         }
 
-        double minDist = closestPair(points, points.length);
+        double minDist = closestPair(points);
         System.out.println("Minimal distance is " + minDist);
         System.out.println();
         Metrics.printMetrics();
@@ -52,10 +52,10 @@ public class ClosestPair {
         return minDistance;
     }
 
-    public static double strip(Point[] points, int size, double bestDistance){
+    public static double strip(Point[] points,double bestDistance){
         double minDistance = bestDistance;
-        for(int i=0;i<size;i++){
-            for(int j=i+1;j<size;j++){
+        for(int i=0;i< points.length;i++){
+            for(int j=i+1;j< points.length;j++){
                 if(j>i+7)break;
                 if((points[j].y - points[i].y >= minDistance)) break;
                 double dist = distance(points[i], points[j]);
@@ -67,8 +67,9 @@ public class ClosestPair {
         return minDistance;
     }
 
-    public static double closestPairRecurse(Point[] px, Point[] py, int size, int depth){
+    public static double closestPairRecurse(Point[] px, Point[] py, int depth){
         Metrics.maxDepth=Math.max(Metrics.maxDepth, depth);
+        int size=px.length;
         if(size<=3){
             return bruteForce(size, px);
         }
@@ -79,60 +80,49 @@ public class ClosestPair {
         ArrayList<Point> leftHalf = new ArrayList<>();
         ArrayList<Point> rightHalf = new ArrayList<>();
 
-        for(int i=0; i<size;i++){
-            if(py[i].x <= midPair.x){
-                leftHalf.add(py[i]);
+        for(Point p:py){
+            if(p.x <= midPair.x){
+                leftHalf.add(p);
             } else{
-                rightHalf.add(py[i]);
+                rightHalf.add(p);
             }
         }
 
-        Point[] pyLeft = leftHalf.toArray(new Point[leftHalf.size()]);
-        Metrics.allocations++;
-        Point[] pyRight = rightHalf.toArray(new Point[rightHalf.size()]);
-        Metrics.allocations++;
+        Point[] pyLeft = leftHalf.toArray(new Point[0]);
+        Point[] pyRight = rightHalf.toArray(new Point[0]);
+        Metrics.allocations+=2;
 
-        Point[] pxLeft = new Point[midIndex];
-        Metrics.allocations++;
-        Point[] pxRight = new Point[size-midIndex];
-        Metrics.allocations++;
-        for(int i=0; i<midIndex;i++){
-            pxLeft[i]=px[i];
-        }
-        for(int i=midIndex;i<size;i++){
-            pxRight[i-midIndex]=px[i];
-        }
+        Point[] pxLeft = Arrays.copyOfRange(px, 0, midIndex);
+        Point[] pxRight = Arrays.copyOfRange(px, midIndex, size);
+        Metrics.allocations+=2;
 
-        double minDistLeft = closestPairRecurse(pxLeft, pyLeft, pxLeft.length, depth+1);
-        double minDistRight = closestPairRecurse(pxRight, pyRight, pxRight.length, depth+1);
+
+        double minDistLeft = closestPairRecurse(pxLeft, pyLeft, depth+1);
+        double minDistRight = closestPairRecurse(pxRight, pyRight,depth+1);
         double bestDistance = Math.min(minDistLeft, minDistRight);
 
         ArrayList<Point> stripList = new ArrayList<>();
-        for(int i=0;i<size;i++){
-            if(Math.abs(py[i].x - midPair.x) < bestDistance){
-                stripList.add(py[i]);
+        for(Point p: py){
+            if(Math.abs(p.x-midPair.x)<bestDistance){
+                stripList.add(p);
             }
         }
-        Point[] strip = stripList.toArray(new Point[stripList.size()]);
+        Point[] strip = stripList.toArray(new Point[0]);
         Metrics.allocations++;
 
-        double distStrip = strip(strip, strip.length, bestDistance);
+        double distStrip = strip(strip, bestDistance);
         bestDistance=Math.min(bestDistance, distStrip);
         return bestDistance;
     }
 
-    public static double closestPair(Point[] points, int size){
-        Point[] px = new Point[size];
-        Metrics.allocations++;
-        Point[] py = new Point[size];
-        Metrics.allocations++;
-        for(int i=0;i<size;i++){
-            px[i] = points[i];
-            py[i] = points[i];
-        }
+    public static double closestPair(Point[] points){
+
+        Point[] px = Arrays.copyOf(points, points.length);
+        Point[] py = Arrays.copyOf(points, points.length);
+        Metrics.allocations+=2;
         Arrays.sort(px, Comparator.comparingInt(p -> p.x));
         Arrays.sort(py, Comparator.comparingInt(p -> p.y));
 
-        return closestPairRecurse(px, py, px.length, 1);
+        return closestPairRecurse(px, py, 1);
     }
 }
